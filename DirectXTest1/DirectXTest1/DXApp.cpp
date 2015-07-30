@@ -16,18 +16,18 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 DXApp::DXApp(HINSTANCE hInstance)
 {
-	m_hAppInstance = hInstance; 
-	m_hAppWnd = NULL;
-	m_ClientHeight = 600;
-	m_ClientWidth = 800;
-	m_AppTitle = "DIRECTX11 APPLICATION -- WIN 32 SETUP";
-	m_WndStyle = WS_OVERLAPPEDWINDOW; //BASIc resize window
-	g_pApp = this;
+	m_hAppInstance		= hInstance; 
+	m_hAppWnd			= NULL;
+	m_ClientHeight		= SCREEN_HEIGHT;
+	m_ClientWidth		= SCREEN_WIDTH;
+	m_AppTitle			= WINDOW_TITLE;
+	m_WndStyle			= WS_OVERLAPPED | WS_SYSMENU | WS_VISIBLE | WS_CAPTION | WS_MINIMIZEBOX; //Basic resize window
+	g_pApp				= this;
 
-	m_pDevice = nullptr;
+	m_pDevice			= nullptr;
 	m_pImmediateContext = nullptr;
 	m_pRenderTargetView = nullptr;
-	m_pSwapChain = nullptr;
+	m_pSwapChain		= nullptr;
 }
 
 
@@ -39,6 +39,11 @@ DXApp::~DXApp()
 	Memory::SafeRelease(m_pSwapChain);
 	Memory::SafeRelease(m_pImmediateContext);
 	Memory::SafeRelease(m_pDevice);
+
+	if (FULL_SCREEN)
+	{
+		ChangeDisplaySettings(NULL, 0);
+	}
 }
 
 
@@ -86,18 +91,18 @@ bool DXApp::InitWindow()
 {
 	WNDCLASSEX wcex;
 	ZeroMemory(&wcex, sizeof(WNDCLASSEX)); //Setting it to empty memory
-	wcex.cbClsExtra = 0; // settings for setting aside more memory
-	wcex.cbWndExtra = 0; // same .. don't need any extra memory 
-	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_HREDRAW | CS_VREDRAW; //not using the gdi .. overriding the pixel data.
-	wcex.hInstance = m_hAppInstance;
-	wcex.lpfnWndProc = MainWndProc; // setting the call back we created 
-	wcex.hIcon = LoadIcon(NULL, IDI_APPLICATION); //ICON 
-	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)GetStockObject(NULL_BRUSH);
-	wcex.lpszMenuName = NULL;
-	wcex.lpszClassName = "DXAPPWNDCLASS";
-	wcex.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+	wcex.cbClsExtra			= 0; // settings for setting aside more memory
+	wcex.cbWndExtra			= 0; // same .. don't need any extra memory 
+	wcex.cbSize				= sizeof(WNDCLASSEX);
+	wcex.style				= CS_HREDRAW | CS_VREDRAW; //not using the gdi .. overriding the pixel data.
+	wcex.hInstance			= m_hAppInstance;
+	wcex.lpfnWndProc		= MainWndProc; // setting the call back we created 
+	wcex.hIcon				= LoadIcon(NULL, IDI_APPLICATION); //ICON 
+	wcex.hCursor			= LoadCursor(NULL, IDC_ARROW);
+	wcex.hbrBackground		= (HBRUSH)GetStockObject(NULL_BRUSH);
+	wcex.lpszMenuName		= NULL;
+	wcex.lpszClassName		= "DXAPPWNDCLASS";
+	wcex.hIconSm			= LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wcex))
 	{
@@ -106,15 +111,38 @@ bool DXApp::InitWindow()
 	}
 	//IF IT SUCCEEDS WE SHOULD TRY TO MAKE OUR WINDOW
 
-	RECT r = { 0, 0, m_ClientWidth, m_ClientHeight };
-	AdjustWindowRect(&r, m_WndStyle, FALSE);
-	UINT width = r.right - r.left;
-	UINT height = r.bottom - r.top;
+	UINT newWidth	= GetSystemMetrics(SM_CXSCREEN);
+	UINT newHeight	= GetSystemMetrics(SM_CYSCREEN);
+	UINT x;
+	UINT y;
+	if (FULL_SCREEN)
+	{
+		x									= 0;
+		y									= 0;
+		DEVMODE dmScreenSettings;
+		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
+		dmScreenSettings.dmSize				= sizeof(dmScreenSettings);
+		dmScreenSettings.dmPelsWidth		= (unsigned long)newWidth;
+		dmScreenSettings.dmPelsHeight		= (unsigned long)newHeight;
+		dmScreenSettings.dmBitsPerPel		= 32;
+		dmScreenSettings.dmFields			= DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+		
+		ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN);
+	}
+	else
+	{
+		RECT r = { 0, 0, m_ClientWidth, m_ClientHeight };
+		AdjustWindowRect(&r, m_WndStyle, FALSE);
+		newWidth = r.right - r.left;
+		newHeight = r.bottom - r.top;
 
-	UINT x = GetSystemMetrics(SM_CXSCREEN) / 2 - width / 2; // GETTING THE CENTER OF THE SCREEN
-	UINT y = GetSystemMetrics(SM_CYSCREEN) / 2 - height / 2;
+		x = GetSystemMetrics(SM_CXSCREEN) / 2 - newWidth / 2; // GETTING THE CENTER OF THE SCREEN
+		y = GetSystemMetrics(SM_CYSCREEN) / 2 - newHeight / 2;
+	}
 
-	m_hAppWnd = CreateWindow("DXAPPWNDCLASS", m_AppTitle.c_str(), m_WndStyle, x, y, width, height, NULL , NULL, m_hAppInstance, NULL);
+
+
+	m_hAppWnd = CreateWindowEx(WS_EX_APPWINDOW,"DXAPPWNDCLASS", m_AppTitle.c_str(), m_WndStyle, x, y, newWidth, newHeight, NULL, NULL, m_hAppInstance, NULL);
 	
 	if (!m_hAppWnd)
 	{
@@ -157,28 +185,28 @@ bool DXApp::InitDirect3D()
 	UINT numFeatureLevels = ARRAYSIZE(featureLevels);
 
 	//SWAPCHAIN ... front buffer , back buffer... double buffer rendering ... describes how we want the swap to happen
-
 	DXGI_SWAP_CHAIN_DESC swapDesc;
 	ZeroMemory(&swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
-	swapDesc.BufferCount = 1; //0 single 1 double buffered
-	swapDesc.BufferDesc.Width = m_ClientWidth;
-	swapDesc.BufferDesc.Height = m_ClientHeight;
-	swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapDesc.BufferDesc.RefreshRate.Numerator = 60;
-	swapDesc.BufferDesc.RefreshRate.Denominator = 1; //BAsically setting to 60 FRAMES/ SEC
-	swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; //we want to render to the target of the window
-	swapDesc.OutputWindow = m_hAppWnd; //Handle to the Application Window
-	swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD; //Fastest and most efficient
-	swapDesc.Windowed = true;
-	swapDesc.SampleDesc.Count = 1;  //MultiSampling kinda like anti aliasing ... Wrecks frame rate.
-	swapDesc.SampleDesc.Quality = 0;
-	swapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // allows when u do alt-Enter  .. puts it into full screen wont resize the buffer tho .. 
-
+	swapDesc.BufferCount			= 1;									//0 single 1 double buffered
+	swapDesc.BufferDesc.Width		= m_ClientWidth;
+	swapDesc.BufferDesc.Height		= m_ClientHeight;
+	swapDesc.BufferDesc.Format		= DXGI_FORMAT_R8G8B8A8_UNORM;			// 
+	swapDesc.BufferDesc.RefreshRate.Numerator	= 60;
+	swapDesc.BufferDesc.RefreshRate.Denominator = 1;						//BAsically setting to 60 FRAMES/ SEC
+	swapDesc.BufferUsage			= DXGI_USAGE_RENDER_TARGET_OUTPUT;		//we want to render to the target of the window
+	swapDesc.OutputWindow			= m_hAppWnd;							//Handle to the Application Window
+	swapDesc.SwapEffect				= DXGI_SWAP_EFFECT_DISCARD;				//Fastest and most efficient
+	swapDesc.Windowed				= true;
+	swapDesc.SampleDesc.Count		= 1;									//MultiSampling kinda like anti aliasing ... Wrecks frame rate.
+	swapDesc.SampleDesc.Quality		= 0;
+	swapDesc.Flags					= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // allows when u do alt-Enter  .. puts it into full screen wont resize the buffer tho .. 
+	
 
 	HRESULT result;	//ERROR CODE HANDLE
 	for (int i = 0; i < numDriverTypes; ++i)
 	{
-		result = D3D11CreateDeviceAndSwapChain(NULL,
+		result = D3D11CreateDeviceAndSwapChain(
+			NULL,
 			driverTypes[i],
 			NULL,
 			createDeviceFlags,
@@ -205,10 +233,21 @@ bool DXApp::InitDirect3D()
 
 
 	//CREATE THE RENDER TARGET VIEW  *basically a big image that we render stuff to first create the texture*
-	ID3D11Texture2D*		m_pBackBufferTex;
+	ID3D11Texture2D* m_pBackBufferTex;
+	//m_pBackBufferTex->GetDesc();
 	HR(m_pSwapChain->GetBuffer(NULL, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&m_pBackBufferTex)));
 	HR(m_pDevice->CreateRenderTargetView(m_pBackBufferTex, nullptr, &m_pRenderTargetView)); //returns an HRESULT SO WE GRAB IT TO DEAL WITH ERRORS
 	Memory::SafeRelease(m_pBackBufferTex);
+
+	//CREATE THE DEPTH BUFFER 
+	D3D11_TEXTURE2D_DESC depthBufferDesc;
+
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
+	D3D11_RASTERIZER_DESC rasterDesc;
+
+	//HR(m_pDevice->Create);
+
 
 	//BIND RENDER TARGET VIEW
 	m_pImmediateContext->OMSetRenderTargets(1, &m_pRenderTargetView, nullptr); //Binding one view to the render target .. nullptr is the depth sense .. not doing this yet.

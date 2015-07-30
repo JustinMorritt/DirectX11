@@ -34,15 +34,21 @@ bool TestApp::Init()
 
 void TestApp::Update(float dt)
 {
-
+	
 }
 
 void TestApp::Render(float dt)
 {
-	m_pImmediateContext->ClearRenderTargetView(m_pRenderTargetView, DirectX::Colors::DarkSalmon);
+	m_pImmediateContext->ClearRenderTargetView(m_pRenderTargetView, DirectX::Colors::Lime);
 
 	HR(m_pSwapChain->Present(0, 0)); //flushes the buffer to our screen to our window
 }
+
+
+
+
+
+
 
 //Win 32 entry point ...   "handle to the application"			"optional old deprecated"    "command line arguments" "show code optional"                          
 int WINAPI WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in LPSTR lpCmdLine, __in int nShowCmd)

@@ -4,6 +4,7 @@
 #include <DirectXColors.h>
 #include "dxerr.h"
 #pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
 
 //CREATE A MACRO FOR ERROR HANDLING 
 
@@ -52,5 +53,5 @@ namespace Memory
 			t = nullptr;
 		}
 	}
-
+	
 }

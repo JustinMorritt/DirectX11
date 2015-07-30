@@ -35,5 +35,8 @@
     <ClInclude Include="dxerr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SystemDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

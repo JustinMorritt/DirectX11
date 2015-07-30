@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <string>
 #include "DXUtil.h"
+#include "SystemDefs.h"
 
 //ABSTRACT CLASS
 class DXApp
@@ -20,7 +21,11 @@ public:
 	virtual void Render(float dt) = 0;
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+	
+
 protected: //so we can have access in inherited classes 
+	
+	
 	//WIN32 ATTRIBUTES
 	HWND		m_hAppWnd;
 	HINSTANCE	m_hAppInstance;
@@ -34,7 +39,7 @@ protected: //so we can have access in inherited classes
 	ID3D11Device*				m_pDevice;
 	ID3D11DeviceContext*		m_pImmediateContext;
 	IDXGISwapChain*				m_pSwapChain;
-	ID3D11RenderTargetView*		m_pRenderTargetView;
+	ID3D11RenderTargetView*		m_pRenderTargetView; //Where the Draws end up Going 
 	D3D_DRIVER_TYPE				m_DriverType;
 	D3D_FEATURE_LEVEL			m_FeatureLevel;
 	D3D11_VIEWPORT				m_Viewport;
