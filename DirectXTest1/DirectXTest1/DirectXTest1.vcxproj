@@ -68,12 +68,14 @@
   <ItemGroup>
     <ClCompile Include="DXApp.cpp" />
     <ClCompile Include="dxerr.cpp" />
+    <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXApp.h" />
     <ClInclude Include="dxerr.h" />
     <ClInclude Include="DXUtil.h" />
+    <ClInclude Include="GameTimer.h" />
     <ClInclude Include="SystemDefs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

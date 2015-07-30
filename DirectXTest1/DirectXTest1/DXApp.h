@@ -4,6 +4,7 @@
 #include <string>
 #include "DXUtil.h"
 #include "SystemDefs.h"
+#include "GameTimer.h"
 
 //ABSTRACT CLASS
 class DXApp
@@ -25,6 +26,8 @@ public:
 
 protected: //so we can have access in inherited classes 
 	
+	//TIMER 
+	GameTimer* m_pGameTimer;
 	
 	//WIN32 ATTRIBUTES
 	HWND		m_hAppWnd;

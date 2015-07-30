@@ -16,6 +16,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 DXApp::DXApp(HINSTANCE hInstance)
 {
+	m_pGameTimer		= new GameTimer();
 	m_hAppInstance		= hInstance; 
 	m_hAppWnd			= NULL;
 	m_ClientHeight		= SCREEN_HEIGHT;
@@ -44,6 +45,8 @@ DXApp::~DXApp()
 	{
 		ChangeDisplaySettings(NULL, 0);
 	}
+	delete m_pGameTimer;
+	m_pGameTimer = nullptr;
 }
 
 
@@ -60,8 +63,11 @@ int DXApp::Run()
 		}
 		else // FREE OF messages so update
 		{
+			//GAMETIMER
+			m_pGameTimer->Tick();
+
 			//UPDATE
-			Update(0.0f);
+			Update(m_pGameTimer->DeltaTime());
 
 			//RENDER 
 			Render(0.0f);
@@ -166,6 +172,9 @@ bool DXApp::InitDirect3D()
 	createDeviceFlags = D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+
+
+
 	D3D_DRIVER_TYPE driverTypes[] =
 	{
 		D3D_DRIVER_TYPE_HARDWARE,		//Means you have a graphics card or some sort of integrated graphics card (allows lighting transforms)
@@ -246,7 +255,9 @@ bool DXApp::InitDirect3D()
 	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 	D3D11_RASTERIZER_DESC rasterDesc;
 
-	//HR(m_pDevice->Create);
+	UINT m4MsaaQuality;
+	HR(m_pDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4MsaaQuality))
+	assert(m4MsaaQuality > 0);
 
 
 	//BIND RENDER TARGET VIEW
