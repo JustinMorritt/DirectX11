@@ -3,12 +3,12 @@
 #include "DXApp.h"
 
 
-class TestApp : public DXApp
+class Graphics : public DXApp
 {
 	public:
 
-	TestApp(HINSTANCE hInstance);
-	~TestApp();
+	Graphics(HINSTANCE hInstance);
+	~Graphics();
 
 	//Override the methods
 	bool Init() override;
@@ -16,32 +16,37 @@ class TestApp : public DXApp
 	void Render(float dt) override;
 };
 
-TestApp::TestApp(HINSTANCE hInstance) : DXApp(hInstance)
+Graphics::Graphics(HINSTANCE hInstance) : DXApp(hInstance)
 {
 
 }
 
 
-TestApp::~TestApp()
+Graphics::~Graphics()
 {
 
 }
 
-bool TestApp::Init()
+bool Graphics::Init()
 {
 	return DXApp::Init();
+	EnableAlphaBlending(true);
+	EnableZBuffer(true);
 }
 
-void TestApp::Update(float dt)
+void Graphics::Update(float dt)
 {
 	
 }
 
-void TestApp::Render(float dt)
+void Graphics::Render(float dt)
 {
-	m_pImmediateContext->ClearRenderTargetView(m_pRenderTargetView, DirectX::Colors::Lime);
+	BeginScene(1.0f, 0.0f, 0.0f, 1.0f);
+	EndScene();
 
-	HR(m_pSwapChain->Present(0, 0)); //flushes the buffer to our screen to our window
+
+	//m_pImmediateContext->ClearRenderTargetView(m_pRenderTargetView, DirectX::Colors::Lime);
+	//HR(m_pSwapChain->Present(0, 0)); //flushes the buffer to our screen to our window
 }
 
 
@@ -55,9 +60,9 @@ int WINAPI WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, 
 {
 	
 	//CREATE THE TEST APP
-	TestApp tApp(hInstance);
-	if (!tApp.Init())return 1;
+	Graphics App(hInstance);
+	if (!App.Init())return 1;
 
 	//MessageBox(NULL, "Hello, World", "Test", NULL);
-	return tApp.Run();
+	return App.Run();
 }

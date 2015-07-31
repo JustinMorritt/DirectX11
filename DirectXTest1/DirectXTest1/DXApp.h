@@ -63,22 +63,30 @@ protected: //so we can have access in inherited classes
 	int							m_MonitorDenumerator;
 	int							m_MonitorNumerator;
 	char						m_pVideoCardDescription[128];
+	bool						m_VSync;
 
 protected:
 
 	//INITIALIZE WIN32 WINDOW
 	bool InitWindow();
 
+	//DIRECT X INITIALIZERS
 	bool InitDirect3D();
 	bool InitGraphicsCard();
 	bool InitSwapChain();
 	bool InitBackBuffer();
 	bool InitDepthBuffer();
 	bool InitDepthStencilBuffer();
+	bool InitStencilView();
+	bool InitializeRasterizerState();
+	bool InitializeViewPort();
+	bool InitializeAlphaBlending();
+	bool InitializeZBuffer();
 
 
 	void BeginScene(float r, float g, float b, float a);
 	void EndScene();
+
 	void EnableAlphaBlending(bool enable);
 	void EnableZBuffer(bool enable);
 

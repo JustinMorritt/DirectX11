@@ -38,7 +38,7 @@ DXApp::DXApp(HINSTANCE hInstance)
 	m_pRasterState				= nullptr;
 	m_pAlphaEnableBlendState	= nullptr;
 	m_pAlphaDisableBlendState	= nullptr;
-	
+	m_VSync						= VSYNC_ENABLED;
 
 }
 
@@ -117,6 +117,65 @@ bool DXApp::Init()
 
 void DXApp::BeginScene(float r, float g, float b, float a)
 {
+	float color[4];
+	color[0] = r;
+	color[1] = g;
+	color[2] = b;
+	color[3] = a;
+
+	//clear back buffer
+	m_pImmediateContext->ClearRenderTargetView(m_pRenderTargetView, color);
+
+	//clear depth buffer
+	m_pImmediateContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+}
+
+void DXApp::EndScene()
+{
+	if (m_VSync)
+	{
+		//lock to the screens refresh rate 
+		m_pSwapChain->Present(1, 0);
+	}
+	else
+	{
+		//present as fast as possible 
+		m_pSwapChain->Present(0, 0);
+	}
+	
+}
+
+void DXApp::EnableAlphaBlending(bool enable)
+{
+	float blendFactor[4];
+	blendFactor[0] = 0.0f;
+	blendFactor[1] = 0.0f;
+	blendFactor[2] = 0.0f;
+	blendFactor[3] = 0.0f;
+
+
+	if (enable)
+	{
+		m_pImmediateContext->OMSetBlendState(m_pAlphaEnableBlendState, blendFactor , 0xffffffff);
+	}
+	else
+	{
+		m_pImmediateContext->OMSetBlendState(m_pAlphaDisableBlendState, blendFactor, 0xffffffff);
+	}
+
+}
+
+void DXApp::EnableZBuffer(bool enable)
+{
+	if (enable)
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
+	}
+	else
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_pDisableDepthStencil, 1);
+	}
 
 }
 
@@ -192,78 +251,42 @@ bool DXApp::InitWindow()
 
 
 
+
 bool DXApp::InitDirect3D()
 {
-
-
 	//Get Graphics Card info And Monitor Dimentions/ Numerator/ Denomenator
-	if (!InitGraphicsCard())
-	{
-		OutputDebugString("fAILED TO FIND MONITOR / GRAPHICS CARD");
-		return false;
-	}
+	if (!InitGraphicsCard()){			OutputDebugString("fAILED TO FIND MONITOR / GRAPHICS CARD"); return false;}
 
-	if (!InitSwapChain())
-	{
-		OutputDebugString("fAILED TO CREATE SWAP CHAIN AND DEVICE");
-		return false;
-	}
+	if (!InitSwapChain()){				OutputDebugString("fAILED TO CREATE SWAP CHAIN AND DEVICE"); return false;}
 
-	if (!InitBackBuffer())
-	{
-		OutputDebugString("fAILED TO CREATE BACK BUFFER");
-		return false;
-	}
+	if (!InitBackBuffer()){				OutputDebugString("fAILED TO CREATE BACK BUFFER"); return false;}
 
-	if (!InitDepthBuffer())
-	{
-		OutputDebugString("fAILED TO CREATE DEPTH BUFFER");
-		return false;
-	}
+	if (!InitDepthBuffer()){			OutputDebugString("fAILED TO CREATE DEPTH BUFFER");	return false;}
 
-	if (!InitDepthStencilBuffer())
-	{
-		OutputDebugString("fAILED TO CREATE DEPTH STENCIL BUFFER");
-		return false;
-	}
+	if (!InitDepthStencilBuffer()){		OutputDebugString("fAILED TO CREATE DEPTH STENCIL BUFFER");	return false;}
 
-	D3D11_RASTERIZER_DESC rasterDesc;
-
-	UINT m4MsaaQuality;
-	HR(m_pDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &m4MsaaQuality))
-	assert(m4MsaaQuality > 0);
+	if (!InitStencilView()){			OutputDebugString("fAILED TO CREATE DEPTH STENCIL VIEW");	return false;}
 
 
-	//BIND RENDER TARGET VIEW
-	m_pImmediateContext->OMSetRenderTargets(1, &m_pRenderTargetView, nullptr); //Binding one view to the render target .. nullptr is the depth sense .. not doing this yet.
+	//BIND RENDER TARGET VIEW and the Depth Stencil View to the render pipeline
+	m_pImmediateContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView); //Binding one view to the render target .. nullptr is the depth sense .. not doing this yet.
 
-	//VIEWPORT CREATION
-	if (FULL_SCREEN)
-	{
-		m_Viewport.Width = static_cast<float>(m_ScreenWidth);
-		m_Viewport.Height = static_cast<float>(m_ScreenHeight);
-	}
-	else
-	{
-		m_Viewport.Width = static_cast<float>(m_ClientWidth);
-		m_Viewport.Height = static_cast<float>(m_ClientHeight);
-	}
 
-	m_Viewport.TopLeftX = 0;
-	m_Viewport.TopLeftY = 0;
-	m_Viewport.MinDepth = 0.0f;
-	m_Viewport.MaxDepth = 1.0f;
+	if (!InitializeRasterizerState()){	OutputDebugString("fAILED TO INIT RASTERIZER"); return false;}
 
-	//BIND VIEWPORT
-	m_pImmediateContext->RSSetViewports(1, &m_Viewport);
+	if (!InitializeViewPort()){ OutputDebugString("fAILED TO INIT VIEWPORT"); return false; }
+
+	if (!InitializeAlphaBlending()){ OutputDebugString("fAILED TO INIT ALPHABLENDING"); return false; }
+	
+	if (!InitializeZBuffer()){ OutputDebugString("fAILED TO INIT ZBUFFER"); return false; }
+	
+
 
 	return true;
 
 	//THIS SHOULD SET IT UP FOR USING DIRECT X 11
 
 }
-
-
 
 bool DXApp::InitGraphicsCard()
 {
@@ -402,36 +425,36 @@ bool DXApp::InitSwapChain()
 	//SWAPCHAIN ... front buffer , back buffer... double buffer rendering ... describes how we want the swap to happen
 	DXGI_SWAP_CHAIN_DESC swapDesc;
 	ZeroMemory(&swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
-	swapDesc.BufferCount = 1;									//0 single 1 double buffered
+	swapDesc.BufferCount							= 1;									//0 single 1 double buffered
 
-	swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;			// 
-	swapDesc.BufferDesc.RefreshRate.Numerator = m_MonitorNumerator;
-	swapDesc.BufferDesc.RefreshRate.Denominator = m_MonitorDenumerator;		//BAsically setting to 60 FRAMES/ SEC
-	swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;		//we want to render to the target of the window
-	swapDesc.OutputWindow = m_hAppWnd;							//Handle to the Application Window
-	swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;				//Fastest and most efficient
+	swapDesc.BufferDesc.Format						= DXGI_FORMAT_R8G8B8A8_UNORM;			// 
+	swapDesc.BufferDesc.RefreshRate.Numerator		= m_MonitorNumerator;
+	swapDesc.BufferDesc.RefreshRate.Denominator		= m_MonitorDenumerator;					//BAsically setting to 60 FRAMES/ SEC
+	swapDesc.BufferUsage							= DXGI_USAGE_RENDER_TARGET_OUTPUT;		//we want to render to the target of the window
+	swapDesc.OutputWindow							= m_hAppWnd;							//Handle to the Application Window
+	swapDesc.SwapEffect								= DXGI_SWAP_EFFECT_DISCARD;				//Fastest and most efficient
 
-	swapDesc.SampleDesc.Count = 1;									//MultiSampling kinda like anti aliasing ... Wrecks frame rate.
-	swapDesc.SampleDesc.Quality = 0;
-	swapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // allows when u do alt-Enter  .. puts it into full screen wont resize the buffer tho .. 
+	swapDesc.SampleDesc.Count						= 1;									//MultiSampling kinda like anti aliasing ... Wrecks frame rate.
+	swapDesc.SampleDesc.Quality						= 0;
+	swapDesc.Flags									= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // allows when u do alt-Enter  .. puts it into full screen wont resize the buffer tho .. 
 
 	//SET FULLSCREEN CAPABILITIES
 	if (FULL_SCREEN)
 	{
-		swapDesc.BufferDesc.Width = m_ScreenWidth;						// Set to the windows width
-		swapDesc.BufferDesc.Height = m_ScreenHeight;
+		swapDesc.BufferDesc.Width		= m_ScreenWidth;						// Set to the windows width
+		swapDesc.BufferDesc.Height		= m_ScreenHeight;
 		swapDesc.Windowed = false;
 	}
 	else
 	{
-		swapDesc.BufferDesc.Width = m_ClientWidth;						// Set to the windows width
-		swapDesc.BufferDesc.Height = m_ClientHeight;
+		swapDesc.BufferDesc.Width		= m_ClientWidth;						// Set to the windows width
+		swapDesc.BufferDesc.Height		= m_ClientHeight;
 		swapDesc.Windowed = true;
 	}
 
 	//Set Scan line ordering and scaling to unspecified
-	swapDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	swapDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+	swapDesc.BufferDesc.ScanlineOrdering	= DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+	swapDesc.BufferDesc.Scaling				= DXGI_MODE_SCALING_UNSPECIFIED;
 
 
 
@@ -550,6 +573,161 @@ bool DXApp::InitDepthStencilBuffer()
 
 	return true;
 }
+
+bool DXApp::InitStencilView()
+{
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
+	HRESULT result;
+
+	//initialize description 
+	ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
+
+	//set up desc
+	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Texture2D.MipSlice = 0;
+
+	//create depthStencil
+	result = m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer, &depthStencilViewDesc, &m_pDepthStencilView);
+	if (FAILED(result))
+	{
+		return false;
+	}
+	return true;
+}
+
+bool DXApp::InitializeRasterizerState()
+{
+	D3D11_RASTERIZER_DESC rasterDesc;
+	HRESULT result;
+
+	ZeroMemory(&rasterDesc, sizeof(rasterDesc));
+	//set up description
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_BACK; //type of culling ...
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID; //how you make it wireframe
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+
+	//create rasterizer state 
+	result = m_pDevice->CreateRasterizerState(&rasterDesc, &m_pRasterState);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	//set the rasterizer
+	m_pImmediateContext->RSSetState(m_pRasterState);
+
+	return true;
+}
+
+bool DXApp::InitializeViewPort()
+{
+
+	//VIEWPORT CREATION
+	if (FULL_SCREEN)
+	{
+		m_Viewport.Width = static_cast<float>(m_ScreenWidth);
+		m_Viewport.Height = static_cast<float>(m_ScreenHeight);
+	}
+	else
+	{
+		m_Viewport.Width = static_cast<float>(m_ClientWidth);
+		m_Viewport.Height = static_cast<float>(m_ClientHeight);
+	}
+
+	m_Viewport.TopLeftX = 0;
+	m_Viewport.TopLeftY = 0;
+	m_Viewport.MinDepth = 0.0f;
+	m_Viewport.MaxDepth = 1.0f;
+
+	//BIND VIEWPORT
+	m_pImmediateContext->RSSetViewports(1, &m_Viewport);
+
+	return true;
+}
+
+bool DXApp::InitializeAlphaBlending()
+{
+	D3D11_BLEND_DESC blendStateDesc;
+	HRESULT result;
+
+	//initialize/clear Desc
+	ZeroMemory(&blendStateDesc, sizeof(blendStateDesc));
+	blendStateDesc.RenderTarget[0].BlendEnable			= TRUE;
+	blendStateDesc.RenderTarget[0].SrcBlend				= D3D11_BLEND_SRC_ALPHA;
+	blendStateDesc.RenderTarget[0].DestBlend			= D3D11_BLEND_INV_SRC_ALPHA;
+	blendStateDesc.RenderTarget[0].BlendOp				= D3D11_BLEND_OP_ADD; //making it additive
+	blendStateDesc.RenderTarget[0].SrcBlendAlpha		= D3D11_BLEND_ONE;
+	blendStateDesc.RenderTarget[0].DestBlendAlpha		= D3D11_BLEND_ZERO;
+	blendStateDesc.RenderTarget[0].BlendOpAlpha			= D3D11_BLEND_OP_ADD;
+	blendStateDesc.RenderTarget[0].RenderTargetWriteMask = 0x0f;
+
+	//create the blend state
+	result = m_pDevice->CreateBlendState(&blendStateDesc, &m_pAlphaEnableBlendState);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	//Modify to create disabled alpha blend state
+	blendStateDesc.RenderTarget[0].BlendEnable = false;
+
+	//create the disabled blend state 
+
+	result = m_pDevice->CreateBlendState(&blendStateDesc, &m_pAlphaDisableBlendState);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+
+	return true;
+}
+
+bool DXApp::InitializeZBuffer()
+{
+	D3D11_DEPTH_STENCIL_DESC depthDisabledStencilDesc;
+	HRESULT result;
+
+	ZeroMemory(&depthDisabledStencilDesc, sizeof(depthDisabledStencilDesc));
+
+	depthDisabledStencilDesc.DepthEnable = false;
+	depthDisabledStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthDisabledStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+	depthDisabledStencilDesc.StencilEnable = true;
+	depthDisabledStencilDesc.StencilReadMask = 0xFF;
+	depthDisabledStencilDesc.StencilWriteMask = 0xFF;
+
+	//Stencil operations if pixel is front facing 
+	depthDisabledStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	depthDisabledStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	//Stencil operations if pixel is back facing 
+	depthDisabledStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	depthDisabledStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	//create disabled state
+	result = m_pDevice->CreateDepthStencilState(&depthDisabledStencilDesc, &m_pDisableDepthStencil);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 
 
 
