@@ -24,7 +24,8 @@ DXApp::DXApp(HINSTANCE hInstance)
 	m_ClientHeight		= SCREEN_HEIGHT;
 	m_ClientWidth		= SCREEN_WIDTH;
 	m_AppTitle			= WINDOW_TITLE;
-	m_WndStyle			= WS_OVERLAPPED | WS_SYSMENU | WS_VISIBLE | WS_CAPTION | WS_MINIMIZEBOX; //Basic resize window
+	//m_WndStyle			= WS_OVERLAPPED | WS_SYSMENU | WS_VISIBLE | WS_CAPTION | WS_MINIMIZEBOX; //Basic resize window
+	m_WndStyle			= WS_EX_STATICEDGE; //Basic  window
 	g_pApp				= this;
 
 	m_pDevice					= nullptr;
@@ -39,7 +40,10 @@ DXApp::DXApp(HINSTANCE hInstance)
 	m_pAlphaEnableBlendState	= nullptr;
 	m_pAlphaDisableBlendState	= nullptr;
 	m_VSync						= VSYNC_ENABLED;
-
+	m_AppPaused					= false;
+	m_Minimized					= false;
+	m_Maximized					= false;
+	m_Resizing					= false;
 }
 
 
@@ -76,23 +80,33 @@ int DXApp::Run()
 {
 	//MAIN MESSAGE LOOP
 	MSG msg = { 0 };
+
+	m_pGameTimer->Reset();
+
 	while (WM_QUIT != msg.message)
 	{
 		if (PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE))
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			TranslateMessage(&msg);		// applys key presses 
+			DispatchMessage(&msg);		// triggers window procedures
 		}
 		else // FREE OF messages so update
 		{
-			//GAMETIMER
-			m_pGameTimer->Tick();
+			if (!m_AppPaused)
+			{
+				//GAMETIMER
+				m_pGameTimer->Tick();
 
-			//UPDATE
-			Update(m_pGameTimer->DeltaTime());
+				//UPDATE
+				Update(m_pGameTimer->DeltaTime());
 
-			//RENDER 
-			Render(0.0f);
+				//RENDER 
+				Render(0.0f);
+			}
+			else
+			{
+				Sleep(100);
+			}
 		}
 	}
 
@@ -146,39 +160,6 @@ void DXApp::EndScene()
 	
 }
 
-void DXApp::EnableAlphaBlending(bool enable)
-{
-	float blendFactor[4];
-	blendFactor[0] = 0.0f;
-	blendFactor[1] = 0.0f;
-	blendFactor[2] = 0.0f;
-	blendFactor[3] = 0.0f;
-
-
-	if (enable)
-	{
-		m_pImmediateContext->OMSetBlendState(m_pAlphaEnableBlendState, blendFactor , 0xffffffff);
-	}
-	else
-	{
-		m_pImmediateContext->OMSetBlendState(m_pAlphaDisableBlendState, blendFactor, 0xffffffff);
-	}
-
-}
-
-void DXApp::EnableZBuffer(bool enable)
-{
-	if (enable)
-	{
-		m_pImmediateContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
-	}
-	else
-	{
-		m_pImmediateContext->OMSetDepthStencilState(m_pDisableDepthStencil, 1);
-	}
-
-}
-
 bool DXApp::InitWindow()
 {
 	WNDCLASSEX wcex;
@@ -190,10 +171,10 @@ bool DXApp::InitWindow()
 	wcex.hInstance			= m_hAppInstance;
 	wcex.lpfnWndProc		= MainWndProc; // setting the call back we created 
 	wcex.hIcon				= LoadIcon(NULL, IDI_APPLICATION); //ICON 
-	wcex.hCursor			= LoadCursor(NULL, IDC_ARROW);
+	wcex.hCursor			= LoadCursor(NULL, IDC_HAND);
 	wcex.hbrBackground		= (HBRUSH)GetStockObject(NULL_BRUSH);
 	wcex.lpszMenuName		= NULL;
-	wcex.lpszClassName		= "DXAPPWNDCLASS";
+	wcex.lpszClassName		= "DXAPPWNDCLASS"; //Reference for Direct X to link to 
 	wcex.hIconSm			= LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wcex))
@@ -245,6 +226,9 @@ bool DXApp::InitWindow()
 	}
 
 	ShowWindow(m_hAppWnd, SW_SHOW);
+	UpdateWindow(m_hAppWnd); //not nesessary .
+	SetForegroundWindow(m_hAppWnd);
+	SetFocus(m_hAppWnd);
 	
 	return true;
 }
@@ -397,6 +381,8 @@ bool DXApp::InitGraphicsCard()
 
 bool DXApp::InitSwapChain()
 {
+
+
 	UINT createDeviceFlags = 0;
 
 	//flag we pass to our device creation .. if you have debug enabled
@@ -425,7 +411,7 @@ bool DXApp::InitSwapChain()
 	//SWAPCHAIN ... front buffer , back buffer... double buffer rendering ... describes how we want the swap to happen
 	DXGI_SWAP_CHAIN_DESC swapDesc;
 	ZeroMemory(&swapDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
-	swapDesc.BufferCount							= 1;									//0 single 1 double buffered
+	swapDesc.BufferCount							= 1;	//Only one back buffer								//0 single 1 double buffered
 
 	swapDesc.BufferDesc.Format						= DXGI_FORMAT_R8G8B8A8_UNORM;			// 
 	swapDesc.BufferDesc.RefreshRate.Numerator		= m_MonitorNumerator;
@@ -435,8 +421,9 @@ bool DXApp::InitSwapChain()
 	swapDesc.SwapEffect								= DXGI_SWAP_EFFECT_DISCARD;				//Fastest and most efficient
 
 	swapDesc.SampleDesc.Count						= 1;									//MultiSampling kinda like anti aliasing ... Wrecks frame rate.
-	swapDesc.SampleDesc.Quality						= 0;
+	swapDesc.SampleDesc.Quality						= 0;									//MSAA SETTINGS
 	swapDesc.Flags									= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // allows when u do alt-Enter  .. puts it into full screen wont resize the buffer tho .. 
+	
 
 	//SET FULLSCREEN CAPABILITIES
 	if (FULL_SCREEN)
@@ -479,20 +466,26 @@ bool DXApp::InitSwapChain()
 			m_DriverType = driverTypes[i];
 			return true;
 		}
-
 	}
+
+	//CHECKING MSAA
+// 	UINT quality;
+// 	HR(m_pDevice->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, 4, &quality));
+// 	m_CurrMSAAQuality = (int)quality;
+
+
 	if (FAILED(result))
 	{
 		OutputDebugString("fAILED TO CREATE DEVICE AND SWAP CHAIN");
 		return false;
 	}
+	return true;
 }
 
 bool DXApp::InitBackBuffer()
 {
 	//CREATE THE RENDER TARGET VIEW  *basically a big image that we render stuff to first create the texture*
 	ID3D11Texture2D* m_pBackBufferTex;
-	//m_pBackBufferTex->GetDesc();
 	HR(m_pSwapChain->GetBuffer(NULL, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&m_pBackBufferTex)));
 	HR(m_pDevice->CreateRenderTargetView(m_pBackBufferTex, nullptr, &m_pRenderTargetView)); //returns an HRESULT SO WE GRAB IT TO DEAL WITH ERRORS
 	Memory::SafeRelease(m_pBackBufferTex);
@@ -503,9 +496,6 @@ bool DXApp::InitDepthBuffer()
 {
 	//CREATE THE DEPTH BUFFER 
 	D3D11_TEXTURE2D_DESC depthBufferDesc;
-
-	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 
 	//initialize depth buffer description 
 	ZeroMemory(&depthBufferDesc, sizeof(depthBufferDesc));
@@ -524,12 +514,24 @@ bool DXApp::InitDepthBuffer()
 	depthBufferDesc.MipLevels				= 1;
 	depthBufferDesc.ArraySize				= 1;
 	depthBufferDesc.Format					= DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthBufferDesc.SampleDesc.Count		= 1;
-	depthBufferDesc.SampleDesc.Quality		= 0;
+	depthBufferDesc.SampleDesc.Count		= 1;	//MSAA SETTINGS
+	depthBufferDesc.SampleDesc.Quality		= 0;	//MSAA SETTINGS
 	depthBufferDesc.Usage					= D3D11_USAGE_DEFAULT;
 	depthBufferDesc.BindFlags				= D3D11_BIND_DEPTH_STENCIL;
 	depthBufferDesc.CPUAccessFlags			= 0;
 	depthBufferDesc.MiscFlags				= 0;
+
+
+	//Msaa Enabled ?
+// 	if (MSAA_ENABLED)
+// 	{
+// 
+// 	}
+// 	else
+// 	{
+// 
+// 	}
+
 
 	//create a texture for the depth buffer
 	HR(m_pDevice->CreateTexture2D(&depthBufferDesc, NULL , &m_pDepthStencilBuffer));
@@ -565,6 +567,10 @@ bool DXApp::InitDepthStencilBuffer()
 	depthStencilDesc.BackFace.StencilPassOp			= D3D11_STENCIL_OP_KEEP;
 	depthStencilDesc.BackFace.StencilFunc			= D3D11_COMPARISON_ALWAYS;
 
+
+	
+
+
 	//create depth Stencil 
 	HR(m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilState));
 
@@ -583,8 +589,8 @@ bool DXApp::InitStencilView()
 	ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
 
 	//set up desc
-	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Format				= DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilViewDesc.ViewDimension		= D3D11_DSV_DIMENSION_TEXTURE2D;
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
 
 	//create depthStencil
@@ -731,6 +737,42 @@ bool DXApp::InitializeZBuffer()
 
 
 
+void DXApp::EnableAlphaBlending(bool enable)
+{
+	float blendFactor[4];
+	blendFactor[0] = 0.0f;
+	blendFactor[1] = 0.0f;
+	blendFactor[2] = 0.0f;
+	blendFactor[3] = 0.0f;
+
+
+	if (enable)
+	{
+		m_pImmediateContext->OMSetBlendState(m_pAlphaEnableBlendState, blendFactor, 0xffffffff);
+	}
+	else
+	{
+		m_pImmediateContext->OMSetBlendState(m_pAlphaDisableBlendState, blendFactor, 0xffffffff);
+	}
+
+}
+
+void DXApp::EnableZBuffer(bool enable)
+{
+	if (enable)
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
+	}
+	else
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_pDisableDepthStencil, 1);
+	}
+
+}
+
+
+
+
 LRESULT DXApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
@@ -738,6 +780,14 @@ LRESULT DXApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+	
+	case WM_KEYDOWN:
+		if (wParam == VK_ESCAPE)
+		{
+			PostQuitMessage(0);
+			return 0;
+		}
+
 	default: 
 		return DefWindowProc(hwnd, msg, wParam, lParam); //KEYCODES STORED IN LPARAM AND WPARAM
 	}

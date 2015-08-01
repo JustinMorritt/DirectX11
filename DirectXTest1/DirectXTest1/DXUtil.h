@@ -1,6 +1,9 @@
-#pragma once
+#ifndef _DXUTIL_H_
+#define _DXUTIL_H_
+
 
 #include <d3d11.h>
+#include <Windows.h>
 #include <d3dcommon.h>
 #include <DirectXColors.h>
 #include "dxerr.h"
@@ -56,3 +59,4 @@ namespace Memory
 	}
 	
 }
+#endif

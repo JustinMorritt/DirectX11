@@ -1,6 +1,6 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN // Strips header file for only the necessary win 32 basics
-#include <Windows.h>
+
 #include <string>
 #include "DXUtil.h"
 #include "SystemDefs.h"
@@ -20,7 +20,6 @@ public:
 	virtual bool Init();
 	virtual void Update(float dt) = 0; //PURE VIRTUAL *Must be overRidden*
 	virtual void Render(float dt) = 0;
-	
 	
 
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -64,6 +63,11 @@ protected: //so we can have access in inherited classes
 	int							m_MonitorNumerator;
 	char						m_pVideoCardDescription[128];
 	bool						m_VSync;
+	bool						m_AppPaused;
+	bool						m_Minimized;
+	bool						m_Maximized;
+	bool						m_Resizing;
+	int							m_CurrMSAAQuality;
 
 protected:
 
