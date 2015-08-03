@@ -74,6 +74,9 @@
     <ClCompile Include="dxerr.cpp" />
     <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TextureShader.cpp" />
+    <ClCompile Include="VertexBuffer.cpp" />
     <ClCompile Include="winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -83,6 +86,9 @@
     <ClInclude Include="GameTimer.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SystemDefs.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="TextureShader.h" />
+    <ClInclude Include="VertexBuffer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
