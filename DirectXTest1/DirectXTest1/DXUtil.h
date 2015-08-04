@@ -35,7 +35,7 @@ namespace Memory
 	{
 		if (t)
 		{
-			delete t;
+				delete t;
 			t = nullptr;
 		}
 	}

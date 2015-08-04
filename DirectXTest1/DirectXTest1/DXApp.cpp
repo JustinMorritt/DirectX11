@@ -367,8 +367,8 @@ bool DXApp::InitGraphicsCard()
 	
 
 	//Release memory 
-	Memory::SafeDelete(displayModeList);
-	
+	Memory::SafeDeleteArr(displayModeList);
+
 	adapterOutput->Release();
 	adapterOutput = nullptr;
 	adapter->Release();

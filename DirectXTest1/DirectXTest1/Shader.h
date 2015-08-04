@@ -34,7 +34,7 @@ public:
 protected:
 
 	virtual bool Initialize(ID3D11Device* device, HWND hwnd, LPCSTR shaderFileName, LPCSTR vertexFuncName, LPCSTR pixleFuncName);
-
+	bool m_initialized;
 private: 
 	bool InitializeShader(ID3D11Device* device, HWND hwnd, LPCSTR vsFileName, LPCSTR psFileName, LPCSTR vertexFuncName, LPCSTR pixleFuncName);
 	void OutPutShadeErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, LPCSTR shaderFileName);
@@ -46,7 +46,7 @@ private:
 	ID3D11Buffer*			m_pMatrixBuffer;
 
 	char* m_pName;
-	bool m_initialized;
+	
 };
 
 #endif

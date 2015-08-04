@@ -73,6 +73,7 @@
     <ClCompile Include="DXApp.cpp" />
     <ClCompile Include="dxerr.cpp" />
     <ClCompile Include="GameTimer.cpp" />
+    <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureShader.cpp" />
@@ -84,6 +85,7 @@
     <ClInclude Include="dxerr.h" />
     <ClInclude Include="DXUtil.h" />
     <ClInclude Include="GameTimer.h" />
+    <ClInclude Include="Engine.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SystemDefs.h" />
     <ClInclude Include="Texture.h" />

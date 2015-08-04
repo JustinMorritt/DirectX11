@@ -19,6 +19,7 @@ public:
 	void End(ID3D11DeviceContext* deviceContext) override;
 
 	bool Initialize(ID3D11Device* device, HWND hwnd, LPCSTR shaderFileName, LPCSTR vertexFuncName, LPCSTR pixleFuncName) override;
+	bool InitializeSamplerState(ID3D11Device* device);
 
 private: 
 	ID3D11SamplerState* m_pSamplerState;
