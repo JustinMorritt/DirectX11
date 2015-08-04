@@ -1,8 +1,6 @@
 #include "DXApp.h"
-#include "Shader.h"
-#include "Texture.h"
+#include "Sprite.h"
 #include "TextureShader.h"
-#include "VertexBuffer.h"
 
 class Engine : public DXApp
 {
@@ -18,9 +16,8 @@ public:
 
 private:
 	//TEMP
-	VertexBuffer* m_pVertexBuffer;
+	Sprite* m_pSprite;
 	TextureShader* m_pTextureShader;
-	Texture* m_pTexture;
 
 };
 

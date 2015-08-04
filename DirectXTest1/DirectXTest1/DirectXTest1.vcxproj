@@ -75,6 +75,7 @@
     <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureShader.cpp" />
     <ClCompile Include="VertexBuffer.cpp" />
@@ -87,6 +88,7 @@
     <ClInclude Include="GameTimer.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="Sprite.h" />
     <ClInclude Include="SystemDefs.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureShader.h" />
