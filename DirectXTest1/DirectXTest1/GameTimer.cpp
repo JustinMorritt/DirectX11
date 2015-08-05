@@ -2,7 +2,17 @@
 #include  <windows.h>
 
 
-GameTimer::GameTimer() : m_SecondsPerCount(0.0), m_BaseTime(0), m_CurrTime(0), m_PrevTime(0), m_DeltaTime(0.0), m_Stopped(false), m_PausedTime(0)
+double GameTimer::m_SecondsPerCount;
+double GameTimer::m_DeltaTime;
+__int64 GameTimer::m_BaseTime;
+__int64 GameTimer::m_CurrTime;
+__int64 GameTimer::m_PrevTime;
+__int64 GameTimer::m_PausedTime;
+__int64 GameTimer::m_StopTime;
+bool GameTimer::m_Stopped;
+
+
+GameTimer::GameTimer() 
 {
 	__int64 countsPerSec;
 	QueryPerformanceFrequency((LARGE_INTEGER*)&countsPerSec);
@@ -16,7 +26,7 @@ GameTimer::~GameTimer()
 
 
 
-float GameTimer::TotalTime() const
+float GameTimer::TotalTime() 
 {
 	return (float)m_CurrTime;
 	if (m_Stopped)
@@ -29,7 +39,7 @@ float GameTimer::TotalTime() const
 	}
 }
 
-float GameTimer::DeltaTime() const
+float GameTimer::DeltaTime() 
 {
 	return (float)m_DeltaTime;
 }

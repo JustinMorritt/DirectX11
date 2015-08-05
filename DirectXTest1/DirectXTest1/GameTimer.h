@@ -4,8 +4,8 @@
 class GameTimer
 {
 public:
-	float TotalTime()const;  //in Seconds
-	float DeltaTime()const; //in seconds
+	static float TotalTime();  //in Seconds
+	static float DeltaTime(); //in seconds
 
 	void Reset(); // call before message loop
 	void Start(); // Call when unpaused
@@ -16,16 +16,16 @@ public:
 	~GameTimer();
 
 private:
-	double m_SecondsPerCount;
-	double m_DeltaTime;
+	static double m_SecondsPerCount;
+	static double m_DeltaTime;
 
-	__int64 m_BaseTime;
-	__int64 m_PausedTime;
-	__int64 m_StopTime;
-	__int64 m_PrevTime;
-	__int64 m_CurrTime;
+	static __int64 m_BaseTime;
+	static __int64 m_PausedTime;
+	static __int64 m_StopTime;
+	static __int64 m_PrevTime;
+	static __int64 m_CurrTime;
 
-	bool m_Stopped;
+	static bool m_Stopped;
 };
 
 #endif

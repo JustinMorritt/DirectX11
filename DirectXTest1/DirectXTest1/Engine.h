@@ -1,6 +1,8 @@
 #include "DXApp.h"
-#include "Sprite.h"
+#include "AnimatedSprite.h"
+#include "ResourceManager.h"
 #include "TextureShader.h"
+#include "GameTimer.h"
 
 class Engine : public DXApp
 {
@@ -16,9 +18,8 @@ public:
 
 private:
 	//TEMP
-	Sprite* m_pSprite;
-	TextureShader* m_pTextureShader;
-
+	AnimatedSprite* m_pSprite;
+	ResourceManager* m_pRManager;
 };
 
 

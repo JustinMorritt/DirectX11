@@ -7,6 +7,8 @@
 #include "D3DX10math.h"
 #include "xnamath.h"
 #include <fstream>
+#include <string>
+
 using namespace std;
 
 
@@ -28,7 +30,7 @@ public:
 	bool SetShaderParameters(ID3D11DeviceContext* deviceContext, ID3D11ShaderResourceView* texture);
 	bool SetShaderParameters(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX viewMatrix, D3DXMATRIX projMatrix);
 
-	char* GetName();
+	string GetName();
 	bool IsInitialized();
 
 protected:
@@ -45,7 +47,7 @@ private:
 	ID3D11InputLayout*		m_pLayout;
 	ID3D11Buffer*			m_pMatrixBuffer;
 
-	char* m_pName;
+	string m_pName;
 	
 };
 

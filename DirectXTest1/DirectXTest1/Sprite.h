@@ -10,7 +10,7 @@ public:
 	Sprite(float size);
 	virtual ~Sprite();
 
-	virtual void Initialize(ID3D11Device* device, Shader* shader, LPCSTR textureFileName);
+	virtual void Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, Shader* shader, LPCSTR textureFileName, bool isWritable = false);
 	virtual void Update(){}; //For animated sprite
 	virtual void Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX viewMatrix, D3DXMATRIX projectionMatrix);
 

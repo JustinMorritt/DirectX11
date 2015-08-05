@@ -133,3 +133,8 @@ int VertexBuffer::GetIndexCount()
 {
 	return m_IndexCount;
 }
+
+int VertexBuffer::GetVertexCount()
+{
+	return m_VertexCount;
+}
